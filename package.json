@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "lr": "python3 ../../miniaicups/paperio/local_runner/localrunner.py -p1 \"socat - TCP-LISTEN:1234\" & node src/main.js &",
+    "start": "node src/main.js"
+  },
   "dependencies": {
     "eslint-config-prettier": "^6.0.0",
     "prettier": "^1.18.2"

@@ -1,8 +1,15 @@
 const { WIDTH, X_CELLS_COUNT, Y_CELLS_COUNT } = require('./constants');
+// const Vect = require('../../Vector');
 
-const includes = exports.includes = (p, points) => !!points.find(([x, y]) => x === p[0] && y === p[1]);
+const includes = (exports.includes = (p, points) => !!points.find(([x, y]) => x === p[0] && y === p[1]));
 
-exports.showCoordinates = (point) => {
+exports.randomInteger = (min, max) => {
+  let rand = min - 0.5 + Math.random() * (max - min + 1);
+  rand = Math.round(rand);
+  return rand;
+};
+
+exports.showCoordinates = point => {
   const [x, y] = point;
   console.log('helpers.showCoordinates', { x, y });
   // pyglet.text.Label('{}, {}'.format(x, y), font_name='Times New Roman',
@@ -12,47 +19,27 @@ exports.showCoordinates = (point) => {
   //   anchor_x='center', anchor_y='center').draw()
 };
 
-
-exports.getSquareCoordinates = (point, width=WIDTH) => {
+exports.getSquareCoordinates = (point, width = WIDTH) => {
   const [x, y] = point;
 
-  return [
-    x - width, y - width,
-    x + width, y - width,
-    x + width, y + width,
-    x - width, y + width,
-  ];
+  return [x - width, y - width, x + width, y - width, x + width, y + width, x - width, y + width];
 };
 
-exports.getDiagonals = (point, width=WIDTH) => {
+exports.getDiagonals = (point, width = WIDTH) => {
   const [x, y] = point;
 
-  return [
-    [x + width, y + width],
-    [x - width, y + width],
-    [x + width, y - width],
-    [x - width, y - width],
-  ];
+  return [[x + width, y + width], [x - width, y + width], [x + width, y - width], [x - width, y - width]];
 };
 
-exports.getVertAndHoriz = (point, width=WIDTH) => {
+exports.getVertAndHoriz = (point, width = WIDTH) => {
   const [x, y] = point;
 
-  return [
-    [x, y + width],
-    [x - width, y],
-    [x, y - width],
-    [x + width, y],
-  ];
+  return [[x, y + width], [x - width, y], [x, y - width], [x + width, y]];
 };
 
-exports.defGetNeighboring = (point, width=WIDTH) => {
-  return [
-    ...getVertAndHoriz(point, width),
-    ...getDiagonals(point, width),
-  ];
+exports.getNeighboring = (point, width = WIDTH) => {
+  return [...getVertAndHoriz(point, width), ...getDiagonals(point, width)];
 };
-
 
 exports.getTerritoryLine = (point, points) => {
   const linePoints = [];
@@ -75,8 +62,7 @@ exports.getTerritoryLine = (point, points) => {
   return { linePoints, start, end };
 };
 
-
-exports.getLineCoordinates = (start, end, width=WIDTH) => {
+exports.getLineCoordinates = (start, end, width = WIDTH) => {
   const halfWidth = Math.round(width / 2);
   const [x1, y1] = start;
   const [x2, y2] = end;
@@ -91,37 +77,37 @@ exports.getLineCoordinates = (start, end, width=WIDTH) => {
 
 const TERRITORY_CACHE = {};
 
-exports.batchDrawTerritory = (points, color, redraw, width=WIDTH) => {
-  if (points.length < 100) {
-    batchDraw(points, color, width);
-    return;
-  }
-
-  let lines = [];
-  if (!TERRITORY_CACHE[color.join()] || redraw) {
-    const excluded = new Set();
-
-    for (const point of points) {
-      if (excluded.has(point)) continue;
-      const { linePoints, start, end } = getTerritoryLine(point, points);
-      excluded.add(linePoints);
-      linePoints.forEach(v => excluded.add(v));
-      const coors = getLineCoordinates(start, end, width);
-      lines.push(coors);
-    }
-
-    TERRITORY_CACHE[color] = [points.length, lines];
-  } else {
-    lines = TERRITORY_CACHE[color][1];
-  }
-  console.log(lines);
-  // pyglet.gl.glColor4f(*[i/255 for i in color])
-  // pyglet.gl.glBegin(pyglet.gl.GL_QUADS)
-  // for line in lines:
-  //   for coor in line:
-  //     pyglet.graphics.glVertex2i(*coor)
-  // pyglet.gl.glEnd()
-};
+// exports.batchDrawTerritory = (points, color, redraw, width = WIDTH) => {
+//   if (points.length < 100) {
+//     exports.batchDraw(points, color, width);
+//     return;
+//   }
+//
+//   let lines = [];
+//   if (!TERRITORY_CACHE[color.join()] || redraw) {
+//     const excluded = [];
+//
+//     for (const point of points) {
+//       if (includes(point, excluded)) continue;
+//       const { linePoints, start, end } = exports.getTerritoryLine(point, points);
+//       // excluded.add(linePoints); TODO its type?
+//       linePoints.forEach(v => Vect.pushUniqVec(v, excluded));
+//       const coors = exports.getLineCoordinates(start, end, width);
+//       lines.push(coors);
+//     }
+//
+//     TERRITORY_CACHE[color] = [points.length, lines];
+//   } else {
+//     lines = TERRITORY_CACHE[color][1];
+//   }
+//   console.log(lines);
+//   // pyglet.gl.glColor4f(*[i/255 for i in color])
+//   // pyglet.gl.glBegin(pyglet.gl.GL_QUADS)
+//   // for line in lines:
+//   //   for coor in line:
+//   //     pyglet.graphics.glVertex2i(*coor)
+//   // pyglet.gl.glEnd()
+// };
 
 exports.batchDraw = (points, color, width = WIDTH) => {
   const halfWidth = Math.round(width / 2);
@@ -153,17 +139,10 @@ exports.drawLine = (point1, point2, color, width = WIDTH) => {
 
   const halfWidth = Math.round(width / 2);
 
-  const coordinates = y1 === y2 ? [
-      [x1, y1 + width],
-      [x1, y1 - width],
-      [x2, y2 - width],
-      [x2, y2 + width],
-    ] : [
-      [x1 - width, y1],
-      [x1 + width, y1],
-      [x2 + width, y2],
-      [x2 - width, y2],
-    ];
+  const coordinates =
+    y1 === y2
+      ? [[x1, y1 + width], [x1, y1 - width], [x2, y2 - width], [x2, y2 + width]]
+      : [[x1 - width, y1], [x1 + width, y1], [x2 + width, y2], [x2 - width, y2]];
 
   // pyglet.graphics.draw(4, pyglet.gl.GL_QUADS, ('v2i', coordinates), ('c4B', 4 * color))
 };
@@ -172,18 +151,17 @@ exports.inPolygon = (x, y, xp, yp) => {
   let c = 0;
   for (let i = 0; i < xp.length; i++) {
     if (
-      ((yp[i] <= y && y < yp[i - 1]) || (yp[i - 1] <= y && y < yp[i]))
-      &&
-      (x > (xp[i - 1] - xp[i]) * (y - yp[i]) / (yp[i - 1] - yp[i]) + xp[i])
+      ((yp[i] <= y && y < yp[i - 1]) || (yp[i - 1] <= y && y < yp[i])) &&
+      x > ((xp[i - 1] - xp[i]) * (y - yp[i])) / (yp[i - 1] - yp[i]) + xp[i]
     ) {
-      c = 1 -c;
+      c = 1 - c;
     }
   }
 
   return c;
 };
 
-exports.loadImage = (path) => {
+exports.loadImage = path => {
   // if path not in IMAGE_CACHE:
   //   base_dir = os.path.dirname(os.path.realpath(__file__))
   //   absolute_path = os.path.join(base_dir, path)
@@ -225,7 +203,7 @@ exports.isIntersect = (p1, p2, width = WIDTH) => {
   return Math.abs(x1 - x2) < width && Math.abs(y1 - y2) < width;
 };
 
-exports.randomChoose = (choices) => {
-  const index = Math.floor(Math.random() * choices.length);
+exports.randomChoose = choices => {
+  const index = exports.randomInteger(0, choices.length);
   return choices[index];
 };
