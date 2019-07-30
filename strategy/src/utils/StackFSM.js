@@ -4,10 +4,10 @@ class StackFSM {
   }
 
   update() {
-    const currentStateFunction = this.getCurrentState();
+    const currentStateClass = this.getCurrentState();
 
-    if (currentStateFunction != null) {
-      currentStateFunction();
+    if (currentStateClass != null) {
+      currentStateClass.update();
     }
   }
 
