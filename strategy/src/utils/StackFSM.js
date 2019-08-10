@@ -12,12 +12,14 @@ class StackFSM {
   }
 
   popState() {
-    return this._stack.pop();
+    const state = this._stack.pop();
+    return state;
   }
 
-  pushState(state) {
+  pushState(state, instantUpdate = true) {
     if (this.getCurrentState() !== state) {
       this._stack.push(state);
+      instantUpdate && this.update();
     }
   }
 

@@ -1,3 +1,10 @@
+const {
+  UP,
+  LEFT,
+  RIGHT,
+  DOWN,
+} = require('../../../localrunnerjs/src/constants');
+
 exports.randomInteger = (min, max) => {
   let rand = min - 0.5 + Math.random() * (max - min + 1);
   rand = Math.round(rand);
@@ -36,5 +43,34 @@ exports.coorsIsEqual = (p1, p2) => {
 };
 
 exports.includesPoint = (point, points) => {
-  return points.some(p => exports.coorsIsEqual(p, point));
+  const result = points.some(p => exports.coorsIsEqual(p, point));
+  return result;
+};
+
+/**
+ *
+ * @param point Object or Array, x or y should be undefined
+ * @param points
+ */
+exports.includesCoordinate = (point, points) => {
+  const { x, y } = exports.getObjectCoors(point);
+  if (typeof x === 'undefined' && typeof y === 'undefined')
+    throw new Error('Only one coordinate should be undefined');
+
+  const [key, value] = x ? ['x', x] : ['y', y];
+  for (const p of points) {
+    const coord = exports.getObjectCoors(p);
+    if (coord[key] === value) return true;
+  }
+
+  return false;
+};
+
+exports.sortSidePoints = (direction, points) => {
+  const key = direction === UP || direction === DOWN ? 'y' : 'x';
+  const func =
+    direction === UP || direction === RIGHT
+      ? (a, b) => b[key] - a[key]
+      : (a, b) => a[key] - b[key];
+  return points.sort(func);
 };

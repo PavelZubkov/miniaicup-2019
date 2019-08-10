@@ -8,10 +8,12 @@ class World {
     this.width = width;
     this.halfWidth = width / 2;
     this.tick = 0;
+    this.step = 0;
   }
 
   update(tick) {
     this.tick = tick;
+    this.step += 1;
   }
 }
 

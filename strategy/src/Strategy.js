@@ -1,31 +1,36 @@
 const StackFSM = require('./utils/StackFSM');
 const World = require('./World');
 const Player = require('./Player');
+const { UP, LEFT, RIGHT, DOWN } = require('../../localrunnerjs/src/constants');
 
 class Strategy extends StackFSM {
   constructor(strategies) {
     super();
-    this.players = {};
+    this.players = null;
     this.bonuses = [];
     this.world = null;
-    this.isFirstUpdate = true;
     this.myId = null;
 
     this.strategies = [];
     for (const Strategy of strategies) {
       this.strategies.push(new Strategy(this));
     }
-    this.pushState(this.strategies[0]);
+    this.pushState(this.strategies[0], false);
   }
 
   log(...args) {
-    console.error(...args);
+    if (process.env.NODE_ENV !== 'production') console.error(...args);
+  }
+
+  pushStateByName(name) {
+    const strategy = this.strategies.find(strat => strat.name === name);
+    if (!strategy) throw new Error(`Unexpected strategy: ${name}`);
+    this.pushState(strategy);
   }
 
   startGame({ x_cells_count, y_cells_count, speed, width }) {
     this.world = new World({ x_cells_count, y_cells_count, speed, width });
   }
-
   endGame(params) {
     this.log('end game', params);
   }
@@ -34,39 +39,53 @@ class Strategy extends StackFSM {
     return this.players[this.myId];
   }
 
+  get player() {
+    return this.players[this.myId];
+  }
+
   changeCommand(command) {
-    this.getPlayer().direction = command;
+    if (!command) return;
+    this.player.direction = command;
+  }
+
+  set nextCommand(command) {
+    this.player.direction = command;
+  }
+
+  get nextCommand() {
+    return this.player.direction;
   }
 
   getCommand() {
-    return this.getPlayer().direction;
+    return this.player.direction;
   }
 
-  firstUpdate(players) {
-    this.isFirstUpdate = false;
+  initPlayers(players) {
+    this.players = {};
 
-    const length = Object.keys(players).length;
-    for (let i = 1; i <= length; i += 1) {
+    for (let i = 1; i <= 6; i += 1) {
       if (!players[i]) this.myId = i;
       const playerData = players[i === this.myId ? 'i' : i];
       this.players[i] = new Player(i, playerData);
     }
   }
 
-  update({ players, bonuses, tick_num: tick }) {
+  tickUpdate({ players, bonuses, tick_num: tick }) {
     this.world.update(tick);
     this.bonuses = bonuses;
 
-    if (this.isFirstUpdate) {
-      this.firstUpdate(players);
+    if (!this.players) {
+      this.initPlayers(players);
     } else {
-      for (let i = 1; i <= players.length; i += 1) {
-        this.players[i].update(players[i]);
+      for (let i = 1; i <= 6; i += 1) {
+        const playerData = players[i === this.myId ? 'i' : i];
+        if (playerData) this.players[i].update(playerData);
       }
     }
-
     super.update();
   }
+
+  // utils
 }
 
 module.exports = Strategy;

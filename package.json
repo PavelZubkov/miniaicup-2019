@@ -5,13 +5,16 @@
   "license": "MIT",
   "scripts": {
     "lr": "python3 ../../miniaicups/paperio/local_runner/localrunner.py -p1 \"socat - TCP-LISTEN:1234\" & node src/main.js &",
-    "start": "node src/main.js"
+    "start": "node src/main.js",
+    "build": "webpack --mode production"
   },
   "dependencies": {
     "eslint-config-prettier": "^6.0.0",
-    "prettier": "^1.18.2"
+    "prettier": "^1.18.2",
+    "webpack": "^4.39.1"
   },
   "devDependencies": {
-    "eslint": "^6.0.1"
+    "eslint": "^6.0.1",
+    "webpack-cli": "^3.3.6"
   }
 }
