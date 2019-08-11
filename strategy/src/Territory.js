@@ -41,6 +41,20 @@ class Territory {
       return acc;
     }, {});
   }
+
+  getNearestPoint(position) {
+    let minDistance = Infinity;
+    let nearestPoint;
+    for (const point of this.points) {
+      const distance = position.distanceSq(point);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestPoint = point;
+      }
+    }
+
+    return nearestPoint;
+  }
 }
 
 module.exports = Territory;

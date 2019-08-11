@@ -80,6 +80,7 @@ class Strategy extends StackFSM {
       for (let i = 1; i <= 6; i += 1) {
         const playerData = players[i === this.myId ? 'i' : i];
         if (playerData) this.players[i].update(playerData);
+        else this.players[i] = null;
       }
     }
     super.update();

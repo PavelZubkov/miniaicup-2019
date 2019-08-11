@@ -41,7 +41,7 @@ class GoStartPoint {
         points.push(position);
       }
 
-      const sorted = sortSidePoints(direction, points);
+      const sorted = sortSidePoints(side, points);
       const nextIsBorder = this.isBorder(this.getNextPoint(side, sorted[0]));
       const length = nextIsBorder ? Infinity : sorted[0].distanceSq(position);
       distances[side] = {
