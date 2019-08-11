@@ -2,6 +2,12 @@ const StackFSM = require('./utils/StackFSM');
 const World = require('./World');
 const Player = require('./Player');
 const { UP, LEFT, RIGHT, DOWN } = require('../../localrunnerjs/src/constants');
+const {
+  includesPoint,
+  randomInteger,
+  randomChoose,
+  getObjectCoors,
+} = require('./utils/heplers');
 
 class Strategy extends StackFSM {
   constructor(strategies) {
@@ -80,11 +86,34 @@ class Strategy extends StackFSM {
       for (let i = 1; i <= 6; i += 1) {
         const playerData = players[i === this.myId ? 'i' : i];
         if (playerData) this.players[i].update(playerData);
-        else this.players[i] = null;
+        else {
+          this.players[i] = null;
+        }
       }
     }
     super.update();
   }
+
+  // isEnemyCollisionMyLines() {
+  //   const { lines } = this.player;
+  //
+  //   for (let i = 1; i <= 6; i++) {
+  //     if (i === this.myId) continue;
+  //     const player = this.players[i];
+  //     if (!player) continue;
+  //
+  //     const { direction, position } = player;
+  //     const playerNextPoint = this.strategies[0].getNextPoint(
+  //       direction,
+  //       position
+  //     );
+  //
+  //     if (includesPoint(playerNextPoint, lines)) {
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // }
 
   // utils
 }

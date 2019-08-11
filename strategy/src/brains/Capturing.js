@@ -36,7 +36,7 @@ class Simple {
       [DOWN]: [LEFT, RIGHT],
       [RIGHT]: [DOWN, UP],
       [UP]: [RIGHT, LEFT],
-      null: [UP],
+      null: [UP, DOWN, LEFT, RIGHT],
     };
     return nextCommands[direction];
   }
@@ -51,10 +51,13 @@ class Simple {
   //   }
   // }
 
-  getNextPoint(command) {
+  getNextPoint(command, position) {
     const currentCommand = command || this.root.getCommand();
     const { width } = this.root.world;
-    const currentPoint = this.root.getPlayer().position.clone();
+
+    const currentPoint = position
+      ? position.clone()
+      : this.root.player.position.clone();
 
     switch (currentCommand) {
       case UP:
@@ -84,7 +87,10 @@ class Simple {
 
   isEmptyPoint(point) {
     const { lines } = this.root.getPlayer();
-    const result = !includesPoint(point, lines) && !this.isBorder(point);
+    const result =
+      !includesPoint(point, lines) &&
+      !this.isBorder(point) &&
+      !this.isPlayerCollision(point);
     return result;
   }
 
@@ -163,6 +169,7 @@ class Simple {
         .map(dir => {
           const point = this.getNextPoint(dir);
           if (!this.isEmptyPoint(point)) return null;
+          // nextPoint не на моей территории?
           return {
             dir,
             point,
@@ -212,8 +219,32 @@ class Simple {
       const dist = point.distance(myPosition);
       if (dist < myDistance) myDistance = dist;
     }
-    this.root.log(`ESCAPING`, { myDistance }, { distances });
-    return distances.some(d => d <= myDistance + 200);
+
+    myDistance += 115;
+    const result = distances.some(d => d <= myDistance);
+    this.root.log(
+      `ESCAPING: ${result}\nme:${myDistance} ${distances.join(' ')}`
+    );
+    return result;
+  }
+
+  isPlayerCollision(nextPoint) {
+    const { myId } = this.root;
+
+    for (let i = 1; i <= 6; i++) {
+      if (i === myId) continue;
+      const player = this.root.players[i];
+      if (!player) continue;
+
+      const { direction, position } = player;
+      const playerNextPoint = this.getNextPoint(direction, position);
+
+      if (playerNextPoint.isEqualTo(nextPoint)) {
+        this.root.log('COLISION');
+        return true;
+      }
+    }
+    return false;
   }
 
   update() {
@@ -227,10 +258,10 @@ class Simple {
       return this.root.pushStateByName('GoStartPoint'); // go out from territory
     }
 
-    debugger;
     if (this.isEnemyIsAttacking()) {
       this.stage = this.stages.Second;
-      this.changeStageSecond(nextPoint);
+      this.nextChange = 0;
+      return this.changeStageSecond(nextPoint);
     }
 
     if (this.stage === this.stages.First) this.changeStageFirst(nextPoint);

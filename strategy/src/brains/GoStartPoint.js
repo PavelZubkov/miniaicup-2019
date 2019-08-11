@@ -4,7 +4,7 @@ const {
   RIGHT,
   DOWN,
 } = require('../../../localrunnerjs/src/constants');
-const { sortSidePoints } = require('../utils/heplers');
+const { sortSidePoints, includesPoint } = require('../utils/heplers');
 
 class GoStartPoint {
   constructor(root) {
@@ -28,11 +28,6 @@ class GoStartPoint {
     const { territory, position, direction } = this.root.player;
     const sidesPoints = territory.takePointsFromAllSide(position);
     delete sidesPoints[this.oppositeCommand(direction)];
-
-    for (const side of Object.keys(sidesPoints)) {
-      const nextPoint = this.getNextPoint(side);
-      if (this.isBorder(nextPoint)) delete sidesPoints[side];
-    }
 
     const distances = {};
     Object.keys(sidesPoints).forEach(side => {
@@ -99,8 +94,11 @@ class GoStartPoint {
     const { nextDirection, point, length } = this.selectDirection();
     this.root.changeCommand(nextDirection);
     this.targetPoint = point;
-    if (length === -1) return this.end();
-    if (this.root.player.lines.length) this.end();
+
+    // Если на следующем ходу я покидаю свою территорию - popState
+    const { territory } = this.root.player;
+    const nextPoint = this.getNextPoint(nextDirection);
+    if (!includesPoint(nextPoint, territory.points)) this.end();
   }
 }
 

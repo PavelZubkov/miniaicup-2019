@@ -21,17 +21,18 @@ rl.on('line', line => {
       strategy.tickUpdate(params);
   }
   const output = strategy.getCommand();
-  // if (process.env.NODE_ENV !== 'production')
-  //   console.error(
-  //     JSON.stringify(
-  //       {
-  //         dir: output,
-  //         pos: strategy.player.position.toString(),
-  //         brain: strategy.getCurrentState() && strategy.getCurrentState().name,
-  //       },
-  //       null,
-  //       2
-  //     )
-  //   );
+  if (process.env.NODE_ENV !== 'production')
+    console.error(
+      JSON.stringify(
+        {
+          id: strategy.myId,
+          dir: output,
+          pos: strategy.player.position.toString(),
+          brain: strategy.getCurrentState() && strategy.getCurrentState().name,
+        },
+        null,
+        2
+      )
+    );
   console.log(JSON.stringify({ command: output, debug: output }));
 });
