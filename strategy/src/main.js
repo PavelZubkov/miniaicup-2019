@@ -29,6 +29,7 @@ rl.on('line', line => {
           dir: output,
           pos: strategy.player.position.toString(),
           brain: strategy.getCurrentState() && strategy.getCurrentState().name,
+          sub: strategy.getCurrentState() && strategy.getCurrentState().stage,
         },
         null,
         2

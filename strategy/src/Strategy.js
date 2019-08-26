@@ -72,7 +72,7 @@ class Strategy extends StackFSM {
     for (let i = 1; i <= 6; i += 1) {
       if (!players[i]) this.myId = i;
       const playerData = players[i === this.myId ? 'i' : i];
-      this.players[i] = new Player(i, playerData);
+      this.players[i] = new Player(i, playerData, this);
     }
   }
 
@@ -85,7 +85,7 @@ class Strategy extends StackFSM {
     } else {
       for (let i = 1; i <= 6; i += 1) {
         const playerData = players[i === this.myId ? 'i' : i];
-        if (playerData) this.players[i].update(playerData);
+        if (playerData) this.players[i].update(playerData, this);
         else {
           this.players[i] = null;
         }

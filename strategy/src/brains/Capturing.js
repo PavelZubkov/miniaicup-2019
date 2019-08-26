@@ -4,12 +4,7 @@ const {
   RIGHT,
   DOWN,
 } = require('../../../localrunnerjs/src/constants');
-const {
-  includesPoint,
-  randomInteger,
-  randomChoose,
-  getObjectCoors,
-} = require('../utils/heplers');
+const { includesPoint, randomChoose } = require('../utils/heplers');
 const Point = require('../Point');
 
 class Simple {
@@ -17,16 +12,16 @@ class Simple {
     this.name = 'Capturing';
     this.root = root;
 
-    this.nextChange = 3;
-
     this.stages = {
-      First: 1,
-      Second: 2,
+      First: 'Run',
+      Second: 'Escaping',
+      Lazy: 'LazyEscaping',
     };
     this.stage = this.stages.First;
 
     this.prevDirection = null;
-    this.maxDist = 6;
+    this.maxDist = 7;
+    this.nextChange = this.maxDist;
   }
 
   getNextCommands() {
@@ -123,32 +118,35 @@ class Simple {
     if (this.nextChange > 0) this.nextChange -= 1;
 
     if (this.nextChange === 0 || !this.isEmptyPoint(nextPoint)) {
-      const prevCommand = this.root.player.direction;
-      const allowCommands = this.getNextCommands();
-      const command = randomChoose(allowCommands);
-      const nextPointOne = this.getNextPoint(command);
-      if (this.isEmptyPoint(nextPointOne)) {
-        this.nextChange = this.maxDist;
-        this.stage = this.stages.Second;
-        this.root.changeCommand(command);
-        return;
-      }
-
-      const lastCommand = allowCommands.find(c => c !== command);
-      const nextPointTwo = this.getNextPoint(lastCommand);
-      if (this.isEmptyPoint(nextPointTwo)) {
-        this.nextChange = this.maxDist;
-        this.stage = this.stages.Second;
-        this.root.changeCommand(lastCommand);
-        return;
-      }
-
-      this.nextChange = 1;
-      this.root.changeCommand(prevCommand);
+      // const prevCommand = this.root.player.direction;
+      // const allowCommands = this.getNextCommands();
+      // const command = randomChoose(allowCommands);
+      // const nextPointOne = this.getNextPoint(command);
+      // if (this.isEmptyPoint(nextPointOne)) {
+      //   this.nextChange = this.maxDist;
+      //   this.stage = this.stages.Lazy;
+      //   this.root.changeCommand(command);
+      //   return;
+      // }
+      //
+      // const lastCommand = allowCommands.find(c => c !== command);
+      // const nextPointTwo = this.getNextPoint(lastCommand);
+      // if (this.isEmptyPoint(nextPointTwo)) {
+      //   this.nextChange = this.maxDist;
+      //   this.stage = this.stages.Lazy;
+      //   this.root.changeCommand(lastCommand);
+      //   return;
+      // }
+      //
+      // this.nextChange = 1;
+      // this.root.changeCommand(prevCommand);
+      this.nextChange = this.maxDist;
+      this.stage = this.stages.Lazy;
+      this.stepToPoint(nextPoint);
     }
   }
 
-  changeStageSecond(nextPoint) {
+  changeStageSecond(nextPoint, targetPoint) {
     /*
       нахожу ближайшую точку ко мне точку дома
       если она доступна - поворачиваю на нее
@@ -162,7 +160,8 @@ class Simple {
     if (this.nextChange > 0) this.nextChange -= 1;
     if (this.nextChange === 0 || !this.isEmptyPoint(nextPoint)) {
       const { territory, position, direction } = this.root.player;
-      const nearestTerritoryPoint = territory.getNearestPoint(position);
+      const nearestTerritoryPoint =
+        targetPoint || territory.getNearestPoint(position);
 
       const directions = [UP, LEFT, DOWN, RIGHT]
         .filter(dir => dir !== this.oppositeCommand(direction))
@@ -189,14 +188,20 @@ class Simple {
     }
   }
 
-  isEnemyIsAttacking() {
-    /*
-      берем позиции всех врагов кроме моей
-      ищем ближайший поинт от каждого врага до моейго шлейфа
-      считаем для них растояния
-      ищем ближайшую точку
-    */
-    const { lines, position: myPosition, territory } = this.root.player;
+  /*
+    расстояние от меня до врагов
+    расстояние от меня до граничных точек моей территории
+   */
+  getDistanceToPoints(point, points) {
+    const distances = [];
+    for (const p of points) {
+      distances.push({ point: p, distance: p.distance(point) });
+    }
+    return distances;
+  }
+
+  getDistanceToEnemies() {
+    const { position: myPosition } = this.root.player;
     const { myId } = this.root;
 
     const distances = [];
@@ -205,25 +210,37 @@ class Simple {
       const player = this.root.players[i];
       if (!player) continue;
 
-      let minDist = Infinity;
-      for (const p of lines) {
-        const point = new Point.fromArray(p);
-        const dist = point.distance(player.position);
-        if (dist < minDist) minDist = dist;
-      }
-      distances.push(minDist);
+      distances.push({
+        playerId: i,
+        distance: myPosition.distance(player.position),
+      });
     }
 
-    let myDistance = Infinity;
-    for (const point of territory.points) {
-      const dist = point.distance(myPosition);
-      if (dist < myDistance) myDistance = dist;
-    }
+    return distances;
+  }
 
-    myDistance += 115;
-    const result = distances.some(d => d <= myDistance);
-    this.root.log(
-      `ESCAPING: ${result}\nme:${myDistance} ${distances.join(' ')}`
+  getDistanceToBoundaryTerritoryPoints() {
+    const { position: myPosition, territory } = this.root.player;
+    const points = territory.getBoundaryPoints();
+    const distances = this.getDistanceToPoints(myPosition, points);
+    return distances;
+  }
+
+  isEnemyIsAttacking() {
+    /*
+      берем позиции всех врагов кроме моей
+      ищем ближайший поинт от каждого врага до моейго шлейфа
+      считаем для них растояния
+      ищем ближайшую точку
+    */
+    const { position: myPosition, territory } = this.root.player;
+
+    const distanceToEnemies = this.getDistanceToEnemies();
+    const nearestTerritoryPoint = territory.getNearestPoint(myPosition);
+    const myDistance = myPosition.distance(nearestTerritoryPoint) + 125;
+
+    const result = distanceToEnemies.some(
+      enemy => enemy.distance <= myDistance
     );
     return result;
   }
@@ -247,15 +264,89 @@ class Simple {
     return false;
   }
 
+  /*
+    Делает шаг по направлеию к поинту
+   */
+  stepToPoint(tagetPoint) {
+    const { direction } = this.root.player;
+
+    const directions = [UP, LEFT, DOWN, RIGHT]
+      .filter(dir => dir !== this.oppositeCommand(direction))
+      .map(dir => {
+        const point = this.getNextPoint(dir);
+        if (!this.isEmptyPoint(point)) return null;
+        // nextPoint не на моей территории?
+        return {
+          dir,
+          point,
+          distance: point.distance(tagetPoint),
+        };
+      })
+      .filter(v => v)
+      .sort((a, b) => a.distance - b.distance);
+
+    // this.root.log('DIRECTIONS', JSON.stringify(directions, null, 2));
+    if (directions.length) {
+      this.root.changeCommand(directions[0].dir);
+    }
+  }
+
+  /*
+   * Взять расстояния до врагов
+   * Взять расстояние до граничных клеток моей территории
+   * Найти такую граничную клетку, у которой:
+   *   максимальное расстояние до меня, при этом расстояние меньше чем до ближайшего врага
+   * Повернуть в ее сторону
+   * */
+  getLazyPoint() {
+    const { position, territory } = this.root.player;
+    const enemyDistances = this.getDistanceToEnemies();
+    const boundaryPoints = territory.getBoundaryPoints();
+    debugger;
+    const distancesToBoundaryPoints = this.getDistanceToPoints(
+      position,
+      boundaryPoints
+    );
+
+    enemyDistances.sort((a, b) => a.distance - b.distance);
+    const nearestEnemyDistance = enemyDistances.length
+      ? enemyDistances[0].distance
+      : Infinity;
+
+    let targetPoint;
+    let distanceToTarget = 0;
+    for (const { point, distance } of distancesToBoundaryPoints) {
+      if (distance < nearestEnemyDistance && distance > distanceToTarget) {
+        targetPoint = point;
+        distanceToTarget = distance;
+      }
+    }
+
+    return targetPoint;
+  }
+
+  reset() {
+    if (this.stage !== this.stages.Lazy) this.lazyTargetPoint = null;
+  }
+
   update() {
+    // debugger;
     let nextPoint = this.getNextPoint();
+
+    this.reset();
 
     if (!nextPoint)
       this.root.changeCommand(randomChoose(this.getNextCommands()));
 
-    if (this.isLocatedIsOwnTerritory()) {
+    if (this.isLocatedIsOwnTerritory() && !this.goStartPointBlocked) {
       this.stage = this.stages.First;
+      this.goStartPointBlocked = true;
       return this.root.pushStateByName('GoStartPoint'); // go out from territory
+    }
+
+    if (this.goStartPointBlocked) {
+      this.nextChange = this.maxDist;
+      this.goStartPointBlocked = false;
     }
 
     if (this.isEnemyIsAttacking()) {
@@ -264,8 +355,15 @@ class Simple {
       return this.changeStageSecond(nextPoint);
     }
 
-    if (this.stage === this.stages.First) this.changeStageFirst(nextPoint);
-    else this.changeStageSecond(nextPoint);
+    if (this.stage === this.stages.First)
+      return this.changeStageFirst(nextPoint);
+    else if (this.stage === this.stages.Second)
+      return this.changeStageSecond(nextPoint);
+    else {
+      if (!this.lazyTargetPoint) this.lazyTargetPoint = this.getLazyPoint();
+      this.stepToPoint(this.lazyTargetPoint);
+      return;
+    }
   }
 }
 
